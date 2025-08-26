@@ -1,0 +1,130 @@
+# HackMatch Project Documentation
+
+This document provides a comprehensive developer-focused overview of the HackMatch application. It covers the architecture, data models, key features, and user workflows.
+
+## 1. High-Level Overview
+
+HackMatch is a web application designed to help developers, designers, and innovators find the perfect teammates for hackathons. It provides user profiles, team creation capabilities, and an AI-powered search engine to facilitate meaningful connections within the tech community.
+
+---
+
+## 2. Technology Stack
+
+The application is built on a modern, robust, and scalable tech stack:
+
+- **Framework**: **Next.js 14+** (with App Router) for server-side rendering, static site generation, and a component-based frontend.
+- **Language**: **TypeScript** for type safety and improved developer experience.
+- **Backend-as-a-Service (BaaS)**: **Supabase** provides the core backend infrastructure:
+    - **Database**: PostgreSQL for relational data storage.
+    - **Authentication**: Supabase Auth for managing user sign-up, sign-in, and sessions.
+    - **Storage**: Supabase Storage for hosting user-uploaded files like avatars.
+- **AI & Generative Features**: **Google's Genkit** framework with the **Gemini API** for all AI-powered functionality.
+- **UI Components**: **shadcn/ui** for a set of beautifully designed, accessible, and composable components.
+- **Styling**: **Tailwind CSS** for a utility-first styling approach.
+- **Deployment**: Hosted on **Vercel**, providing seamless integration with Next.js.
+
+---
+
+## 3. Core Architecture & Project Structure
+
+The project is organized around the Next.js App Router paradigm, separating concerns for clarity and maintainability.
+
+```
+/src
+├── app/          # Core of the application, handles all routing.
+│   ├── (main)/   # Route group for pages requiring authentication.
+│   ├── api/      # API routes (if any).
+│   ├── auth/     # Authentication-related pages (callbacks, OTP).
+│   ├── login/    # The main login and sign-up page.
+│   └── ...       # Other top-level routes like the landing page.
+│
+├── components/   # All reusable React components.
+│   ├── ui/       # Unmodified components from shadcn/ui.
+│   └── *.tsx     # Custom application components (e.g., Dashboard, Profile).
+│
+├── ai/           # All Genkit (AI) related code.
+│   ├── flows/    # Server-side AI logic (e.g., peerjet-flow.ts).
+│   └── schemas/  # Zod schemas for type-safe AI inputs/outputs.
+│
+├── lib/          # Utility functions and library initializations.
+│   └── supabase/ # Supabase client initializers for client/server.
+│
+└── ...           # Manuals and configuration files.
+```
+
+---
+
+## 4. Key Workflows & Feature Deep Dive
+
+### 4.1. Authentication Workflow
+
+This is a critical user journey that involves several steps and components.
+
+1.  **Sign-up (`/login`)**:
+    - The `LoginForm` component handles both sign-in and sign-up.
+    - For new users, an email and password are submitted. The system requires an `@niet.co.in` email address.
+    - `supabase.auth.signUp()` is called. Supabase sends a one-time password (OTP) to the user's email.
+    - The user is redirected to `/auth/verify-otp`.
+
+2.  **OTP Verification (`/auth/verify-otp`)**:
+    - The user enters the 6-digit code from their email.
+    - `supabase.auth.verifyOtp()` is called. If successful, the user's session is created.
+    - The application then checks if a corresponding profile exists in the public `users` table.
+
+3.  **Profile Creation (`/profile/create`)**:
+    - If no profile exists for the newly verified user, they are redirected here.
+    - The `ProfileCreate` component provides an interactive, chat-like interface to gather the user's information (name, photo, skills, bio, etc.).
+    - This flow leverages the `profile-flow.ts` Genkit flow to assist the user by generating a bio with AI.
+    - Upon completion, the data is saved to the `users` table in the database, and the user is redirected to the dashboard.
+
+4.  **Sign-in & Session Management**:
+    - For existing users, `supabase.auth.signInWithPassword()` is used.
+    - The `@supabase/ssr` library manages the user's session seamlessly across server and client components using cookies. The server client is initialized in `src/lib/supabase/server.ts` and the browser client in `src/lib/supabase/client.ts`.
+
+### 4.2. Database & Backend (Supabase)
+
+All data is stored in a Supabase PostgreSQL database. Access is controlled by Row Level Security (RLS) policies, which is the cornerstone of the application's security model.
+
+-   **`users` Table**: Stores public user profiles.
+    -   Linked to `auth.users` by a `UUID`.
+    -   **RLS Policies**:
+        -   Anyone authenticated can view all profiles.
+        -   A user can only insert their own profile (i.e., `auth.uid() = id`).
+        -   A user can only update their own profile.
+
+-   **`teams` & `team_members` Tables**: Manages team data.
+    -   **RLS Policies**:
+        -   Anyone authenticated can view teams.
+        -   Only the team `owner_id` can update or delete a team.
+        -   Team members can leave a team, and owners can add/remove members.
+
+-   **`avatars` Storage Bucket**:
+    -   Stores user profile pictures.
+    -   **Storage Policies**:
+        -   Images are publicly readable for easy display in the app.
+        -   A user can only upload or update an avatar within a folder path that matches their own user ID (`auth.uid()`). This prevents users from overwriting each other's photos.
+
+### 4.3. AI-Powered Teammate Search: "PeerJet"
+
+This is the application's flagship feature, located at `/profile/finder` and powered by `src/components/profile.tsx`.
+
+1.  **User Input**: The user types a natural language query (e.g., "find me a frontend developer good with React").
+2.  **Client-Side Logic**: The `Profile` component initiates the search. It fetches all users from the Supabase database.
+3.  **Server-Side AI Flow**: The component calls the `findPeers` function from `src/ai/flows/peerjet-flow.ts`. This is a Server Action.
+4.  **Triage Prompt**: The Genkit flow first uses a "triage" prompt to determine the user's intent. If it's a simple greeting ("hello") or a question about the AI ("who are you?"), it returns a conversational response immediately.
+5.  **Search Prompt**: If the intent is to search, the flow uses a more complex prompt. It passes the user's query, the current user's profile, and the list of all other users to the Gemini model.
+6.  **AI Ranking**: The prompt instructs the AI to act as an expert team builder, filter the list of users based on the query, and return a ranked list of user IDs with a `match_score` and a `reason` for the match.
+7.  **Displaying Results**: The ranked list is sent back to the client. The `Profile` component then displays the matching users as interactive cards, sorted by their match score.
+
+### 4.4. Frontend Deep Dive
+
+-   **Layouts & Routing (`src/app`)**:
+    -   `layout.tsx`: The root layout that sets up the HTML structure and providers like `ThemeProvider`.
+    -   `layout-wrapper.tsx`: A client component that conditionally renders the `Header` and `Footer` based on the current `pathname`, preventing them from appearing on pages like login or profile creation.
+    -   `(main)` Route Group: This group applies a standard layout (including the main `Header`) to all authenticated pages (`/dashboard`, `/discover`, etc.) without adding `(main)` to the URL.
+
+-   **Component Library (`src/components`)**:
+    -   **`minimal-hero.tsx`**: The highly animated landing page for unauthenticated users, featuring a dark "space" theme with a 3D grid and floating particles.
+    -   **`new-dashboard.tsx`**: The user's main dashboard, which mirrors the modern aesthetic of the landing page for a cohesive experience.
+    -   **Dynamic User Profiles (`/profile/[id]/page.tsx`)**: Fetches and displays the public profile of any user based on the ID in the URL.
+    -   **Editable User Profile (`/profile/page.tsx`)**: The page where the currently logged-in user can view and edit their own profile information.
