@@ -62,7 +62,7 @@ type JoinRequest = {
     user_id: string;
     proposal: string | null;
     type: 'join_request' | 'invitation';
-    users: User;
+    users: User[];
 }
 
 export const TeamDetails = ({ teamId }: TeamDetailsProps) => {
@@ -185,7 +185,7 @@ export const TeamDetails = ({ teamId }: TeamDetailsProps) => {
             {
                 user_id: currentUser.id,
                 action: `${approve ? 'approved' : 'declined'} request from`,
-                details: { to: request.users.full_name, team_name: team?.name }
+                details: { to: request.users[0].full_name, team_name: team?.name }
             }
         ]);
         
@@ -335,10 +335,10 @@ export const TeamDetails = ({ teamId }: TeamDetailsProps) => {
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <Avatar>
-                                                <AvatarImage src={req.users.avatar_url} />
-                                                <AvatarFallback>{req.users.full_name[0]}</AvatarFallback>
+                                                <AvatarImage src={req.users[0].avatar_url} />
+                                                <AvatarFallback>{req.users[0].full_name[0]}</AvatarFallback>
                                             </Avatar>
-                                            <p className="font-semibold">{req.users.full_name}</p>
+                                            <p className="font-semibold">{req.users[0].full_name}</p>
                                         </div>
                                         <div className="flex gap-2">
                                             <Button size="icon" variant="outline" className="h-8 w-8 border-green-500 text-green-500 hover:bg-green-500 hover:text-white" onClick={() => handleRequest(req, true)}>
