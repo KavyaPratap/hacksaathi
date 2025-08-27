@@ -1,5 +1,4 @@
 
-
 'use client';
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -237,22 +236,22 @@ const SuggestedTeamCard = ({ team, currentUser }: { team: any, currentUser: any 
                         <DialogHeader>
                             <DialogTitle>Request to join {team.name}</DialogTitle>
                             <DialogDescription>
-                                You can include an optional message to the team owner. This team has {teamMembers.length} member(s).
+                                You can include an optional message to the team owner. This team has {teamMembers.length > 0 ? teamMembers.length : team.team_members[0]?.count || 0} member(s).
                             </DialogDescription>
                         </DialogHeader>
                          <div className="space-y-3">
                             <h4 className="font-medium text-sm">Current Members</h4>
                             {loadingMembers ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                                 <div className="flex flex-wrap gap-4">
-                                    {teamMembers.map(member => (
-                                        <div key={member.id} className="flex flex-col items-center gap-1">
+                                    {teamMembers && teamMembers.length > 0 ? teamMembers.map(member => (
+                                        <div key={member?.id} className="flex flex-col items-center gap-1">
                                             <Avatar>
-                                                <AvatarImage src={member.avatar_url} />
-                                                <AvatarFallback>{member.full_name?.[0]}</AvatarFallback>
+                                                <AvatarImage src={member?.avatar_url} />
+                                                <AvatarFallback>{member?.full_name?.[0]}</AvatarFallback>
                                             </Avatar>
-                                            <p className="text-xs text-muted-foreground">{member.full_name.split(' ')[0]}</p>
+                                            <p className="text-xs text-muted-foreground">{member?.full_name?.split(' ')[0]}</p>
                                         </div>
-                                    ))}
+                                    )) : <p className="text-xs text-muted-foreground">No members found.</p>}
                                 </div>
                             )}
                         </div>
