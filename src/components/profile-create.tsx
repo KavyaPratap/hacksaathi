@@ -194,7 +194,7 @@ export function ProfileCreate() {
         ...otherSkills.split(',').map(s => s.trim()).filter(Boolean)
     ];
     // Remove duplicates
-    const uniqueSkills = [...new Set(combinedSkills)];
+    const uniqueSkills = Array.from(new Set(combinedSkills));
     
     setProfileData(prev => ({...prev, techStack: uniqueSkills }));
     handleNextStep('interests', <blockquote>{uniqueSkills.join(', ')}</blockquote>);
@@ -531,4 +531,3 @@ export function ProfileCreate() {
     </div>
   );
 }
-
