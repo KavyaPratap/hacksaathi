@@ -24,18 +24,18 @@ const triagePrompt = ai.definePrompt({
       thought: z
         .string()
         .describe(
-          'Your reasoning. Is the user asking for a person, or is it a general question/greeting?'
+          'Your reasoning. Is the user asking for a person, or is it a general question/greeting? Is the query nonsensical?'
         ),
       action: z
-        .enum(['search', 'answer'])
+        .enum(['search', 'answer', 'reject'])
         .describe(
-          'Choose "search" if the user is looking for people. Choose "answer" for greetings, questions about you, or requests for help.'
+          'Choose "search" if the user is looking for people. Choose "answer" for greetings or questions. Choose "reject" if the query is nonsensical, gibberish, too short (e.g., "...", "a"), or clearly not a request to find people.'
         ),
       answer: z
         .string()
         .optional()
         .describe(
-          'If the action is "answer", provide a direct response here.'
+          'If the action is "answer" or "reject", provide a direct response here.'
         ),
     }),
   },
@@ -47,11 +47,16 @@ Analyze the user's query: "{{query}}"
 - If the query is a simple greeting like "hi" or "hello", set action to "answer" and provide a friendly response.
 - If the query is a question about you, like "who made you?" or "what do you do?", set action to "answer" and provide a helpful response.
 - If the query is a request for "help", set action to "answer" and provide example search queries.
+- If the query is nonsensical (e.g. 'asdfgh'), gibberish, just punctuation (e.g., '...'), or too vague to be a search (e.g., 'a', 'the'), set action to "reject" and provide a polite message asking for a clearer search query.
 
 Example 'answer' responses:
 - for "who made you?": "I was made by a talented team from dt club lead by KavyaPratap, Arhaan and Suryansh"
 - for "what do you do?": "I help you find the perfect teammates for your hackathon projects by matching your query against a database of talented individuals."
-- for 'help': "You can ask me things like 'Find a react developer' or 'Show me designers who know Figma'."`,
+- for 'help': "You can ask me things like 'Find a react developer' or 'Show me designers who know Figma'."
+
+Example 'reject' response:
+- for '...': "That query is a bit too short. Could you please describe the teammate you're looking for in more detail?"
+`,
 });
 
 // This prompt performs the actual user search and ranking.
@@ -131,6 +136,10 @@ const peerSearchFlow = ai.defineFlow(
     
     if (triageResult?.action === 'answer' && triageResult.answer) {
       return triageResult.answer;
+    }
+
+    if (triageResult?.action === 'reject' && triageResult.answer) {
+        return triageResult.answer;
     }
 
     // Step 3: If it's a search, proceed with the peer search prompt.
