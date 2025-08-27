@@ -102,6 +102,10 @@ export const Profile = () => {
   
   const handleSearch = async (newQuery: string) => {
     if (!newQuery.trim() || !currentUser || isSearching || isBlocked) return;
+    if (currentUser.peerjet_searches_remaining <= 0) {
+        toast.error("No searches remaining.", { description: "You have used all your free PeerJet searches." });
+        return;
+    }
   
     // Spam protection
     searchHistory.current.push(newQuery);
@@ -189,6 +193,16 @@ export const Profile = () => {
             portfolio_url: currentUser.portfolio_url,
           },
         });
+        
+        // Decrement search count if it was a valid search action
+        if (typeof results !== 'string' || (!results.toLowerCase().includes("greeting") && !results.toLowerCase().includes("sorry"))) {
+            const { error: decrementError } = await supabase.rpc('decrement_peerjet_searches');
+            if (decrementError) {
+                toast.error("Could not update search count.");
+            } else {
+                setCurrentUser((prev: any) => ({ ...prev, peerjet_searches_remaining: prev.peerjet_searches_remaining - 1 }));
+            }
+        }
   
         const newConversationEntry = (
           <Message key={`ai-response-${Date.now()}`} isUser={false}>
@@ -222,6 +236,8 @@ export const Profile = () => {
     });
   };
 
+  const searchesRemaining = currentUser?.peerjet_searches_remaining ?? 0;
+
   return (
     <Dialog onOpenChange={(isOpen) => !isOpen && setSelectedUser(null)}>
       <div className="min-h-screen bg-background flex flex-col">
@@ -240,6 +256,9 @@ export const Profile = () => {
                       <h1 className="text-xl font-semibold">PeerJet</h1>
                   </div>
               </div>
+              <Badge variant={searchesRemaining > 0 ? "secondary" : "destructive"}>
+                {searchesRemaining} {searchesRemaining === 1 ? 'search' : 'searches'} left
+              </Badge>
             </div>
           </div>
         </header>
@@ -264,18 +283,18 @@ export const Profile = () => {
             <div className="container mx-auto px-4">
               <div className="relative">
                 <Input 
-                  placeholder="Tell me what you're looking for..."
+                  placeholder={searchesRemaining > 0 ? "Tell me what you're looking for..." : "You have no searches remaining."}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleSearch(query)}
                   className="pr-12 text-base h-12"
-                  disabled={isSearching || isBlocked}
+                  disabled={isSearching || isBlocked || searchesRemaining <= 0}
                 />
                 <Button 
                   size="icon" 
                   className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9"
                   onClick={() => handleSearch(query)}
-                  disabled={isSearching || !query || isBlocked}
+                  disabled={isSearching || !query || isBlocked || searchesRemaining <= 0}
                 >
                   <Send className="w-4 h-4" />
                 </Button>
