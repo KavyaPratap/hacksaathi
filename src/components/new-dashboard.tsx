@@ -157,8 +157,7 @@ const SIHCarousel: React.FC<{ onViewDetails: () => void }> = ({ onViewDetails })
                         <CarouselItem key={index}>
                             <div className="p-1">
                                 <Card
-                                    onClick={onViewDetails}
-                                    className="card-hover bg-card/70 backdrop-blur-md border-border overflow-hidden cursor-pointer group"
+                                    className="card-hover bg-card/70 backdrop-blur-md border-border overflow-hidden group"
                                 >
                                     <div className="relative w-full aspect-[21/9]">
                                          <Image src={item.imgSrc} data-ai-hint={item.imgHint} alt={item.title} fill objectFit="cover" className="group-hover:scale-105 transition-transform duration-300"/>
@@ -176,6 +175,12 @@ const SIHCarousel: React.FC<{ onViewDetails: () => void }> = ({ onViewDetails })
                 <CarouselPrevious className="left-4" />
                 <CarouselNext className="right-4" />
             </Carousel>
+             <div className="text-center mt-4">
+                <Button onClick={onViewDetails} variant="outline">
+                    Click to know more about SIH
+                    <ArrowRight className="ml-2 h-4 w-4"/>
+                </Button>
+            </div>
         </section>
     );
 };
