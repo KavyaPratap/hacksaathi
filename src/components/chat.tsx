@@ -303,7 +303,7 @@ export const Chat = () => {
 
       {/* Main Chat Area */}
       <main className={cn(
-        "col-span-1 flex flex-col bg-muted/40",
+        "col-span-1 flex flex-col bg-muted/40 pb-16 md:pb-0",
          activeConversationId ? "flex" : "hidden md:flex"
       )}>
           {activeConversationId && currentUser ? (
@@ -580,7 +580,7 @@ const ActiveChatView = ({ conversationId, currentUser, onBack }: { conversationI
     }
 
     return (
-        <div className="flex flex-col h-full bg-background pb-16 md:pb-0">
+        <div className="flex flex-col h-full bg-background">
             {/* Chat Header */}
             <header className="border-b p-4 flex items-center gap-3 flex-shrink-0">
                 <Button variant="ghost" size="icon" className="md:hidden" onClick={onBack}>
@@ -644,3 +644,4 @@ const ActiveChatView = ({ conversationId, currentUser, onBack }: { conversationI
 };
 
     
+
